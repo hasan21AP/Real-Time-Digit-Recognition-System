@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# Data and Models
+# *.pth
+*.h5
+*.pt
+*.ckpt
+data/
+datasets/
+
+# Logs and cache
+logs/
+*.log
+*.tmp
+*.cache/
+.ipynb_checkpoints/
+
+# VSCode settings
+.vscode/
