@@ -3,25 +3,39 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
+import kagglehub
+import os 
+from torch.utils.data import DataLoader, random_split
+
+print("📦 Downloading Printed Digits Dataset from Kaggle...")
+path = kagglehub.dataset_download("kshitijdhama/printed-digits-dataset")
+print("✅ Dataset downloaded successfully at:", path)
 
 
+data_dir = os.path.join(path, "assets")
 
-
-
-# تحويل الصورة إلى Tensor وتطبيعها بين 0 و 1
+# Data augmentation and normalization for training
 transform = transforms.Compose([
-    transforms.RandomRotation(10),
-    transforms.RandomAffine(0, translate=(0.1, 0.1)),
-    transforms.ToTensor(),
-    transforms.Normalize((0.5,), (0.5,))
+    transforms.Grayscale(),  # Make sure images are single channel
+    transforms.Resize((28, 28)), # Resize to 28x28
+    transforms.RandomRotation(10), # Simple Rotation +- 10 degrees
+    transforms.RandomAffine(0, translate=(0.1, 0.1)),  # Random translation 10%
+    transforms.ColorJitter(brightness=0.3, contrast=0.3), # Random brightness/contrast change
+    transforms.ToTensor(), # Convert image to tensor [0,1]
+    transforms.Normalize((0.5,), (0.5,)) # Normalize to range [-1,1]
 ])
+data_set = datasets.ImageFolder(root=data_dir, transform=transform)
 
-# تحميل بيانات MNIST للتدريب والاختبار
-train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+# Split dataset into training and testing sets (80-20 split)
+train_size = int(0.8 * len(data_set))
+test_size  = len(data_set) - train_size
+train_dataset, test_dataset = random_split(data_set, [train_size, test_size])
 
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=64, shuffle=True)
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=64, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size= 64, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size= 64, shuffle=False)
+
+print(f"📊 Dataset size: {len(data_set)} images")
+print(f"🧩 Train: {len(train_dataset)}, Test: {len(test_dataset)}")
 
 class SimpleCNN(nn.Module):
     def __init__(self):
@@ -93,4 +107,4 @@ def model_training(*, epochs=5):
 
         print(f"Accuracy: {100 * correct / total:.2f}%")
 
-        torch.save(model.state_dict(), "mnist_cnn.pth")
+        torch.save(model.state_dict(), "kaggle_printed_numbers.pth")
