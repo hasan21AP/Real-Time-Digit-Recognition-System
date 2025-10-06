@@ -7,7 +7,7 @@ import torchvision.transforms as transforms
 # Loading Model
 
 model = SimpleCNN()
-model.load_state_dict(torch.load("mnist_cnn.pth", map_location=torch.device('cpu'), weights_only=True))
+model.load_state_dict(torch.load("mnist_finetuned.pth", map_location=torch.device('cpu'), weights_only=True))
 model.eval()
 
 
@@ -34,7 +34,7 @@ while True:
     size = 150
     roi = frame[cy-size:cy+size, cx-size:cx+size]
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-    _, thresh = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+    _, thresh = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     # Image Processing
     img_pil = Image.fromarray(thresh)
     input_tensor = transform(img_pil).unsqueeze(0)  # Add batch dimension
@@ -47,7 +47,7 @@ while True:
         predicted = predicted_class.item()
     
     # Display the predicted number
-    if confidence >= 0.97:  # Only show if confidence is high
+    if confidence >= 0.999:  # Only show if confidence is high
         cv2.putText(frame, f"Predicted: {predicted}", 
                 (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2)
         cv2.rectangle(frame, (cx-size, cy-size), (cx+size, cy+size), (255, 0, 0), 2)
