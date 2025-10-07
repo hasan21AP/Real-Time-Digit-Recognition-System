@@ -8,11 +8,11 @@ import os
 from torch.utils.data import DataLoader, random_split
 
 print("📦 Downloading Printed Digits Dataset from Kaggle...")
-path = kagglehub.dataset_download("kshitijdhama/printed-digits-dataset")
+path = kagglehub.dataset_download("dhruvmomoman/printed-digits")
 print("✅ Dataset downloaded successfully at:", path)
 
 
-data_dir = os.path.join(path, "assets")
+data_dir = os.path.join(path, "training_data")
 
 # Data augmentation and normalization for training
 transform = transforms.Compose([
@@ -40,13 +40,13 @@ print(f"🧩 Train: {len(train_dataset)}, Test: {len(test_dataset)}")
 class SimpleCNN(nn.Module):
     def __init__(self):
         super(SimpleCNN, self).__init__()
-        # Convolution 1: 1 قناة → 16 خرائط ميزات
+        # Convolution 1: 1 -> 16 Features Maps
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, padding=1)
-        # Convolution 2: 16 → 32 خرائط ميزات
+        # Convolution 2: 16 → 32 Features Maps
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1)
-        # Convolution 3: 32 → 64 خرائط ميزات
+        # Convolution 3: 32 → 64 Features Maps
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
-        # Convolution 3: 64 → 128 خرائط ميزات
+        # Convolution 3: 64 → 128 Features Maps
         self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
         # MaxPooling 2x2
         self.pool = nn.MaxPool2d(2, 2)
@@ -73,7 +73,7 @@ model = SimpleCNN()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr=0.0005)
 
 
 
@@ -108,4 +108,4 @@ def model_training(*, epochs=5):
 
         print(f"Accuracy: {100 * correct / total:.2f}%")
 
-        torch.save(model.state_dict(), "kaggle_printed_numbers.pth")
+        torch.save(model.state_dict(), "kaggle_printed_digits.pth")
