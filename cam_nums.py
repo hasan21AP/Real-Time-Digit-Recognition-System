@@ -3,6 +3,9 @@ from model.training import SimpleCNN
 import torch
 from PIL import Image
 import torchvision.transforms as transforms
+import easyocr
+
+reader = easyocr.Reader(['en'])
 
 # Loading Model
 
@@ -28,37 +31,28 @@ while True:
     if not ret:
         break
     
-    # Detecting the number
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussionBlur(gray, (5, 5), 0)
-    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    for cnt in contours:
-        area = cv2.contourArea(cnt)
-        if area < 200:
+    results = reader.readtext(frame)
+    for (bbox, text, prob) in results:
+        (top_left, top_right, bottom_right, bottom_left) = bbox
+        x1, y1 = map(int, top_left)
+        x2, y2 = map(int, bottom_right)
+        roi = frame[y1:y2, x1:x2]
+        if roi.size == 0:
             continue
-
-        x, y, w, h = cv2.boundingRect(cnt)
-        aspect_ratio = w / float(h)
-        if aspect_ratio < 0.3 or aspect_ratio > 3.5:
-            continue
-
-        roi = gray[y:y+h, x:x+w]
-        img_pil = Image.fromarray(roi)
+        img_pil = Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
         input_tensor = transform(img_pil).unsqueeze(0)
 
-    with torch.no_grad():
-        output = model(input_tensor)
-        probs = torch.softmax(output, dim=1)
-        confidence, predicted_class = torch.max(probs, dim=1)
-        confidence = confidence.item()
-        predicted = predicted_class.item()
+        with torch.no_grad():
+            output = model(input_tensor)
+            probs = torch.softmax(output, dim=1)
+            confidence, predicted_class = torch.max(probs, dim=1)
+            confidence = confidence.item()
+            predicted = predicted_class.item()
 
-    if confidence > 0.95:
-        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-        cv2.putText(frame, f"{predicted} ({confidence*100:.1f}%)",
-                    (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,0), 2)
+        if confidence > 0.9:
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                cv2.putText(frame, f"{predicted} ({confidence*100:.1f}%)",
+                            (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,0), 2)
 
         
     cv2.imshow('Camera', frame)

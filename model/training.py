@@ -41,13 +41,13 @@ class SimpleCNN(nn.Module):
     def __init__(self):
         super(SimpleCNN, self).__init__()
         # Convolution 1: 1 قناة → 16 خرائط ميزات
-        self.conv1 = nn.Conv2d(1, 16, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, padding=1)
         # Convolution 2: 16 → 32 خرائط ميزات
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1)
         # Convolution 3: 32 → 64 خرائط ميزات
-        self.conv3 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
         # Convolution 3: 64 → 128 خرائط ميزات
-        self.conv4 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
         # MaxPooling 2x2
         self.pool = nn.MaxPool2d(2, 2)
         # Fully Connected Layer
@@ -68,6 +68,7 @@ class SimpleCNN(nn.Module):
         x = self.fc2(x)                       # Output logits
         return x
 
+
 model = SimpleCNN()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
@@ -77,7 +78,7 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 
     
-# تدريب المودل
+# Model training
 model.train()
 def model_training(*, epochs=5):
     print("Torch version:", torch.__version__)
