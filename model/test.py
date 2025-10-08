@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 
 def load_model():
     model = SimpleCNN()
-    model.load_state_dict(torch.load("mnist_cnn.pth", weights_only=True))
+    model.load_state_dict(torch.load("kaggle_printed_digits.pth", weights_only=True))
     model.eval()   # وضع inference
 
 

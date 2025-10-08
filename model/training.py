@@ -8,11 +8,11 @@ import os
 from torch.utils.data import DataLoader, random_split
 
 print("📦 Downloading Printed Digits Dataset from Kaggle...")
-path = kagglehub.dataset_download("dhruvmomoman/printed-digits")
+path = kagglehub.dataset_download("kshitijdhama/printed-digits-dataset")
 print("✅ Dataset downloaded successfully at:", path)
 
 
-data_dir = os.path.join(path, "training_data")
+data_dir = os.path.join(path, "assets")
 
 # Data augmentation and normalization for training
 transform = transforms.Compose([
@@ -46,13 +46,13 @@ class SimpleCNN(nn.Module):
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1)
         # Convolution 3: 32 → 64 Features Maps
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
-        # Convolution 3: 64 → 128 Features Maps
-        self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
+        # # Convolution 3: 64 → 128 Features Maps
+        # self.conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
         # MaxPooling 2x2
         self.pool = nn.MaxPool2d(2, 2)
         # Fully Connected Layer
-        self.fc1 = nn.Linear(in_features=128 * 1 * 1, out_features=128)  # بعد Pooling
-        self.fc2 = nn.Linear(128, 10)          # 10 أرقام
+        self.fc1 = nn.Linear(in_features=64 * 3 * 3, out_features=128)  # بعد Pooling
+        self.fc2 = nn.Linear(in_features=128, out_features=10)          # 10 أرقام
         self.dropout = nn.Dropout(0.5)
 
         
@@ -61,8 +61,8 @@ class SimpleCNN(nn.Module):
         x = self.pool(F.relu(self.conv1(x)))  # Conv1 + ReLU + Pooling
         x = self.pool(F.relu(self.conv2(x)))  # Conv2 + ReLU + Pooling
         x = self.pool(F.relu(self.conv3(x)))  # Conv2 + ReLU + Pooling
-        x = self.pool(F.relu(self.conv4(x)))  # Conv2 + ReLU + Pooling
-        x = x.view(-1, 128 * 1 * 1)           # Flatten
+        # x = self.pool(F.relu(self.conv4(x)))  # Conv2 + ReLU + Pooling
+        x = x.view(-1, 64 * 3 * 3)           # Flatten
         x = F.relu(self.fc1(x))               # Fully Connected
         x = self.dropout(x) 
         x = self.fc2(x)                       # Output logits
@@ -73,7 +73,7 @@ model = SimpleCNN()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.0005)
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 
 
@@ -84,6 +84,7 @@ def model_training(*, epochs=5):
     print("Torch version:", torch.__version__)
     print("CUDA available:", torch.cuda.is_available())
     print("GPU:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU only")
+    best_acc = 0.0
     for epoch in range(epochs):
         for images, labels in train_loader:
             images, labels = images.to(device), labels.to(device)
@@ -105,7 +106,11 @@ def model_training(*, epochs=5):
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
-
-        print(f"Accuracy: {100 * correct / total:.2f}%")
-
-        torch.save(model.state_dict(), "kaggle_printed_digits.pth")
+        accuracy = 100 * correct / total
+        if accuracy > best_acc:
+            best_acc = accuracy
+            torch.save(model.state_dict(), "kaggle_printed_digits.pth")
+            print(f"✅ Model improved! Saved with accuracy = {best_acc:.2f}%")
+        print(f"Accuracy: {accuracy:.2f}%")
+    print("🏁 Training complete")
+    print("🎉 Training finished. Best accuracy:", best_acc)
