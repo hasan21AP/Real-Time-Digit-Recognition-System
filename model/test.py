@@ -1,12 +1,12 @@
 import torch
-from .training import SimpleCNN
+from .model import RecognizeNumbersModel
 from PIL import Image
 import torchvision.transforms as transforms
 
 
 def load_model():
-    model = SimpleCNN()
-    model.load_state_dict(torch.load("kaggle_printed_digits.pth", weights_only=True))
+    model = RecognizeNumbersModel()
+    model.load_state_dict(torch.load("weights/kaggle_printed_digits.pth", weights_only=True))
     model.eval()   # وضع inference
 
 
