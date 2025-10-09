@@ -17,6 +17,7 @@ env/
 *.ckpt
 data/
 datasets/
+data_unified/
 
 # Logs and cache
 logs/
