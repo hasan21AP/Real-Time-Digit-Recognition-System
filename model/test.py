@@ -15,7 +15,6 @@ def load_model():
         transforms.Grayscale(),        # قناة وحدة
         transforms.Resize((128, 128)),
         transforms.ToTensor(),
-        transforms.Lambda(lambda x: 1 - x),  # نقلب الألوان: أسود ↔ أبيض
         transforms.Normalize((0.5,), (0.5,))
     ])
 
@@ -27,6 +26,7 @@ def load_model():
 
         with torch.no_grad():
             output = model(image)
+            labels = ["0","1","2","3","4","5","6","7","8","9","none"]
             predicted = torch.argmax(output, dim=1).item()
-
-        print(f"Actual number: {number} (Predicted number: {predicted})")
+            predicted_label = labels[predicted]
+        print(f"Actual number: {number} (Predicted number: {predicted_label})")
