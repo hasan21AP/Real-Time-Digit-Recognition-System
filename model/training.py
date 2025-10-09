@@ -1,60 +1,45 @@
+from .model import RecognizeNumbersModel
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
+import kagglehub
+import os 
+from torch.utils.data import DataLoader, random_split
+
+print("📦 Downloading Printed Digits Dataset from Kaggle...")
+path = kagglehub.dataset_download("kshitijdhama/printed-digits-dataset")
+print("✅ Dataset downloaded successfully at:", path)
 
 
+data_dir = os.path.join(path, "assets")
 
-
-
-# تحويل الصورة إلى Tensor وتطبيعها بين 0 و 1
+# Data augmentation and normalization for training
 transform = transforms.Compose([
-    transforms.RandomRotation(10),
-    transforms.RandomAffine(0, translate=(0.1, 0.1)),
-    transforms.ToTensor(),
-    transforms.Normalize((0.5,), (0.5,))
+    transforms.Grayscale(),  # Make sure images are single channel
+    transforms.Resize((28, 28)), # Resize to 28x28
+    transforms.RandomRotation(20), # Simple Rotation +- 20 degrees
+    transforms.RandomAffine(0, translate=(0.15, 0.15)),  # Random translation 15%
+    transforms.RandomPerspective(distortion_scale=0.4, p=0.5), # Random Perspective
+    transforms.ColorJitter(brightness=0.5, contrast=0.5), # Random brightness/contrast change
+    transforms.ToTensor(), # Convert image to tensor [0,1]
+    transforms.Normalize((0.5,), (0.5,)) # Normalize to range [-1,1]
 ])
+data_set = datasets.ImageFolder(root=data_dir, transform=transform)
 
-# تحميل بيانات MNIST للتدريب والاختبار
-train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-test_dataset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+# Split dataset into training and testing sets (80-20 split)
+train_size = int(0.8 * len(data_set))
+test_size  = len(data_set) - train_size
+train_dataset, test_dataset = random_split(data_set, [train_size, test_size])
 
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=64, shuffle=True)
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=64, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size= 128, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size= 128, shuffle=False)
 
-class SimpleCNN(nn.Module):
-    def __init__(self):
-        super(SimpleCNN, self).__init__()
-        # Convolution 1: 1 قناة → 16 خرائط ميزات
-        self.conv1 = nn.Conv2d(1, 16, kernel_size=3, padding=1)
-        # Convolution 2: 16 → 32 خرائط ميزات
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
-        # Convolution 3: 32 → 64 خرائط ميزات
-        self.conv3 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        # Convolution 3: 64 → 128 خرائط ميزات
-        self.conv4 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
-        # MaxPooling 2x2
-        self.pool = nn.MaxPool2d(2, 2)
-        # Fully Connected Layer
-        self.fc1 = nn.Linear(in_features=128 * 1 * 1, out_features=128)  # بعد Pooling
-        self.fc2 = nn.Linear(128, 10)          # 10 أرقام
-        self.dropout = nn.Dropout(0.5)
+print(f"📊 Dataset size: {len(data_set)} images")
+print(f"🧩 Train: {len(train_dataset)}, Test: {len(test_dataset)}")
 
-        
 
-    def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))  # Conv1 + ReLU + Pooling
-        x = self.pool(F.relu(self.conv2(x)))  # Conv2 + ReLU + Pooling
-        x = self.pool(F.relu(self.conv3(x)))  # Conv2 + ReLU + Pooling
-        x = self.pool(F.relu(self.conv4(x)))  # Conv2 + ReLU + Pooling
-        x = x.view(-1, 128 * 1 * 1)           # Flatten
-        x = F.relu(self.fc1(x))               # Fully Connected
-        x = self.dropout(x) 
-        x = self.fc2(x)                       # Output logits
-        return x
-
-model = SimpleCNN()
+model = RecognizeNumbersModel()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 criterion = nn.CrossEntropyLoss()
@@ -63,13 +48,14 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 
     
-# تدريب المودل
-model.train()
+# Model training
 def model_training(*, epochs=5):
     print("Torch version:", torch.__version__)
     print("CUDA available:", torch.cuda.is_available())
     print("GPU:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU only")
+    best_acc = 0.0
     for epoch in range(epochs):
+        model.train()
         for images, labels in train_loader:
             images, labels = images.to(device), labels.to(device)
             optimizer.zero_grad()
@@ -90,7 +76,11 @@ def model_training(*, epochs=5):
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
-
-        print(f"Accuracy: {100 * correct / total:.2f}%")
-
-        torch.save(model.state_dict(), "mnist_cnn.pth")
+        accuracy = 100 * correct / total
+        if accuracy >= best_acc:
+            best_acc = accuracy
+            torch.save(model.state_dict(), "weights/kaggle_printed_digits.pth")
+            print(f"✅ Model improved! Saved with accuracy = {best_acc:.2f}%")
+        print(f"Accuracy: {accuracy:.2f}%")
+    print("🏁 Training complete")
+    print("🎉 Training finished. Best accuracy:", best_acc)
