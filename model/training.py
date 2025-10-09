@@ -7,20 +7,19 @@ import kagglehub
 import os 
 from torch.utils.data import DataLoader, random_split
 
-print("📦 Downloading Printed Digits Dataset from Kaggle...")
-path = kagglehub.dataset_download("kshitijdhama/printed-digits-dataset")
-print("✅ Dataset downloaded successfully at:", path)
+
+path = "data_unified"
 
 
-data_dir = os.path.join(path, "assets")
+data_dir = os.path.join(path)
 
 # Data augmentation and normalization for training
 transform = transforms.Compose([
     transforms.Grayscale(),  # Make sure images are single channel
-    transforms.Resize((28, 28)), # Resize to 28x28
+    transforms.Resize((128, 128)), # Resize to 28x28
     transforms.RandomRotation(20), # Simple Rotation +- 20 degrees
     transforms.RandomAffine(0, translate=(0.15, 0.15)),  # Random translation 15%
-    transforms.RandomPerspective(distortion_scale=0.4, p=0.5), # Random Perspective
+    transforms.RandomPerspective(distortion_scale=0.2, p=0.5), # Random Perspective
     transforms.ColorJitter(brightness=0.5, contrast=0.5), # Random brightness/contrast change
     transforms.ToTensor(), # Convert image to tensor [0,1]
     transforms.Normalize((0.5,), (0.5,)) # Normalize to range [-1,1]
@@ -32,8 +31,8 @@ train_size = int(0.8 * len(data_set))
 test_size  = len(data_set) - train_size
 train_dataset, test_dataset = random_split(data_set, [train_size, test_size])
 
-train_loader = DataLoader(train_dataset, batch_size= 128, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size= 128, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size= 64, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size= 64, shuffle=False)
 
 print(f"📊 Dataset size: {len(data_set)} images")
 print(f"🧩 Train: {len(train_dataset)}, Test: {len(test_dataset)}")

@@ -13,7 +13,7 @@ def load_model():
     # نفس التحويل اللي استعملناه
     transform = transforms.Compose([
         transforms.Grayscale(),        # قناة وحدة
-        transforms.Resize((28, 28)),
+        transforms.Resize((128, 128)),
         transforms.ToTensor(),
         transforms.Lambda(lambda x: 1 - x),  # نقلب الألوان: أسود ↔ أبيض
         transforms.Normalize((0.5,), (0.5,))
