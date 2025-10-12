@@ -10,8 +10,9 @@ model = RecognizeNumbersModel()
 model.load_state_dict(torch.load("kaggle_printed_digits.pth", map_location=torch.device('cpu'), weights_only=True))
 model.eval()
 
-lap_cam = 0
-android_cam = "http://192.168.0.33:4747/video?fps=30"
+LAP_CAM = 0
+ANDROID_CAM = "http://192.168.0.33:4747/video?fps=30"
+ANDROID_CAM_MADAR = "http://10.35.92.27:4747/video?fps=30"
 
 
 # Transformations
@@ -24,7 +25,7 @@ transform = transforms.Compose([
 ])  
 
 # Open Camera
-cap = cv2.VideoCapture(android_cam)
+cap = cv2.VideoCapture(LAP_CAM)
 
 while True:
     ret, frame = cap.read()
