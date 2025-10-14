@@ -53,7 +53,7 @@ while True:
                     roi = frame[y1:y2, x1:x2]
                     filename = f"captures/{int(time.time())}.png"
                     cv2.imwrite(filename, roi)
-                    print(f"📸 تم التقاط صورة عند {conf:.2f} وحفظها في {filename}")
+                    print(f"📸 Screenshot {conf:.2f} And saved in {filename}")
                     last_capture_time = time.time()
 
                     # Analyze the captured ROI
