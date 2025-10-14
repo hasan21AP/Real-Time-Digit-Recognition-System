@@ -22,10 +22,9 @@ ANDROID_CAM_MADAR = "http://10.35.92.27:4747/video?fps=30"
 
 # Transformations
 transform = transforms.Compose([
-    transforms.Grayscale(),        # قناة وحدة
+    transforms.Grayscale(),        # One channel
     transforms.Resize((128, 128)),
     transforms.ToTensor(),
-    # transforms.Lambda(lambda x: 1 - x),  # نقلب الألوان: أسود ↔ أبيض
     transforms.Normalize((0.5,), (0.5,))
 ])  
 
@@ -57,21 +56,25 @@ while True:
                     last_capture_time = time.time()
 
                     # Analyze the captured ROI
-                    img = Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
+                    roi = cv2.resize(roi, (128, 128))
+                    img = Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB, ))
+                    gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+                    _, thresh = cv2.threshold(gray, 128, 255, cv2.THRESH_OTSU)
+                    img = Image.fromarray(thresh)
                     img = transform(img).unsqueeze(0)
         
-                with torch.no_grad():
-                    output = model(img)
-                    probs = torch.softmax(output, dim=1)
-                    confidence, predicted = torch.max(probs, dim=1)
-                    
-                labels = ["0","1","2","3","4","5","6","7","8","9","none"]
-                number = labels[predicted.item()]
-                print(f"🔢 Predicted number: {number} (Confidence: {confidence.item():.2f})")
-            # Draw bounding box
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-            cv2.putText(frame, f"{conf:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
-            
+                    with torch.no_grad():
+                        output = model(img)
+                        probs = torch.softmax(output, dim=1)
+                        confidence, predicted = torch.max(probs, dim=1)
+                        
+                    labels = ["0","1","2","3","4","5","6","7","8","9","none"]
+                    number = labels[predicted.item()]
+                    print(f"🔢 Predicted number: {number} (Confidence: {confidence.item():.2f})")
+                # Draw bounding box
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                cv2.putText(frame, f"{conf:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
+                
         
     cv2.imshow('Camera', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):

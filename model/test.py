@@ -2,6 +2,7 @@ import torch
 from .model import RecognizeNumbersModel
 from PIL import Image
 import torchvision.transforms as transforms
+import cv2
 
 
 def load_model():
@@ -19,14 +20,27 @@ def load_model():
     ])
 
     # target_number = random.randrange(0, 10)
-    for number in range(0, 10):
-        img_path = f"model/data/assets/{number}.png"
-        image = Image.open(img_path)
-        image = transform(image).unsqueeze(0)  # إضافة batch dimension
+    # for number in range(0, 10):
+    #     img_path = f"model/data/assets/{number}.png"
+    #     image = Image.open(img_path)
+    #     image = transform(image).unsqueeze(0)  # إضافة batch dimension
 
-        with torch.no_grad():
-            output = model(image)
-            labels = ["0","1","2","3","4","5","6","7","8","9","none"]
-            predicted = torch.argmax(output, dim=1).item()
-            predicted_label = labels[predicted]
-        print(f"Actual number: {number} (Predicted number: {predicted_label})")
+    #     with torch.no_grad():
+    #         output = model(image)
+    #         labels = ["0","1","2","3","4","5","6","7","8","9","none"]
+    #         predicted = torch.argmax(output, dim=1).item()
+    #         predicted_label = labels[predicted]
+    #     print(f"Actual number: {number} (Predicted number: {predicted_label})")
+    
+    img_path = "captures/1760463170.png"
+    image = Image.open(img_path)
+    image = transform(image).unsqueeze(0)  # Add batch dimension
+    with torch.no_grad():
+        output = model(image)
+        labels = ["0","1","2","3","4","5","6","7","8","9","none"]
+        predicted = torch.argmax(output, dim=1).item()
+        predicted_label = labels[predicted]
+    print(f"Predicted number: {predicted_label}")
+    cv2.imshow("Image", cv2.imread(img_path))
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
