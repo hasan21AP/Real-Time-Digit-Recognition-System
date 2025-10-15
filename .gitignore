@@ -18,6 +18,7 @@ env/
 data/
 datasets/
 data_unified/
+data_yolo/
 
 # Logs and cache
 logs/

@@ -16,7 +16,7 @@ model.load_state_dict(torch.load("weights/kaggle_printed_digits.pth", map_locati
 model.eval()
 
 LAP_CAM = 0
-ANDROID_CAM = "http://192.168.0.33:4747/video?fps=30"
+ANDROID_CAM = "http://192.168.0.33:4747/video"
 ANDROID_CAM_MADAR = "http://10.35.92.27:4747/video?fps=30"
 
 

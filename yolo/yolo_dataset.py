@@ -1,52 +1,48 @@
 import os
-import shutil
 import random
-from PIL import Image
+import cv2
 
-# مسار بيانات printed digits
-source_dir = r"C:\Users\hasan\.cache\kagglehub\datasets\kshitijdhama\printed-digits-dataset\versions\57\assets"
+SRC_DIR = "data_unified"
+DEST_DIR = "data_yolo"
+VAL_SPLIT = 0.2
+TARGET_SIZE = (128, 128)
 
-# المجلد الجديد لشكل YOLO
-target_images_train = "data_yolo/images/train"
-target_images_val   = "data_yolo/images/val"
-target_labels_train = "data_yolo/labels/train"
-target_labels_val   = "data_yolo/labels/val"
+# إنشاء المجلدات المطلوبة
+for folder in ["images/train", "images/val", "labels/train", "labels/val"]:
+    os.makedirs(os.path.join(DEST_DIR, folder), exist_ok=True)
 
-# إنشاء المجلدات لو مش موجودة
-for d in [target_images_train, target_images_val, target_labels_train, target_labels_val]:
-    os.makedirs(d, exist_ok=True)
+# الفئات 0–9 فقط (استبعاد none نهائيًا)
+classes = [c for c in sorted(os.listdir(SRC_DIR)) if c.isdigit()]
+class_to_id = {cls_name: i for i, cls_name in enumerate(classes)}
 
-# تقسيم Train/Val بنسبة 80/20
-for class_name in os.listdir(source_dir):
-    class_path = os.path.join(source_dir, class_name)
-    if not os.path.isdir(class_path):
-        continue
+print("📘 Class IDs:", class_to_id)
 
-    class_id = int(class_name)  # المجلد يمثل الرقم
-    images = [f for f in os.listdir(class_path) if f.lower().endswith(('.jpg','.png','.jpeg'))]
-    random.shuffle(images)
+def resize_and_save(src, dst):
+    img = cv2.imread(src)
+    if img is None:
+        return
+    resized = cv2.resize(img, TARGET_SIZE, interpolation=cv2.INTER_AREA)
+    cv2.imwrite(dst, resized)
 
-    split_index = int(0.8 * len(images))
-    train_imgs = images[:split_index]
-    val_imgs   = images[split_index:]
+# معالجة كل فئة رقمية
+for cls_name in classes:
+    cls_path = os.path.join(SRC_DIR, cls_name)
+    imgs = [f for f in os.listdir(cls_path) if f.lower().endswith((".png", ".jpg", ".jpeg"))]
+    random.shuffle(imgs)
+    split_idx = int(len(imgs) * (1 - VAL_SPLIT))
+    train_imgs, val_imgs = imgs[:split_idx], imgs[split_idx:]
 
-    for phase, img_list in [('train', train_imgs), ('val', val_imgs)]:
-        for img_name in img_list:
-            img_path = os.path.join(class_path, img_name)
-            img = Image.open(img_path)
-            w, h = img.size
+    for split, split_imgs in [("train", train_imgs), ("val", val_imgs)]:
+        for img_name in split_imgs:
+            src_img = os.path.join(cls_path, img_name)
+            dst_img = os.path.join(DEST_DIR, f"images/{split}/{img_name}")
+            resize_and_save(src_img, dst_img)
 
-            # نسخ الصورة
-            shutil.copy(img_path, f"data_yolo/images/{phase}/{img_name}")
+            label_name = os.path.splitext(img_name)[0] + ".txt"
+            dst_label = os.path.join(DEST_DIR, f"labels/{split}/{label_name}")
+            class_id = class_to_id[cls_name]
 
-            # إنشاء label بنفس الاسم
-            label_path = f"data_yolo/labels/{phase}/{img_name.rsplit('.',1)[0]}.txt"
+            with open(dst_label, "w") as f:
+                f.write(f"{class_id} 0.5 0.5 1.0 1.0\n")
 
-            # الصندوق يغطي كامل الصورة
-            x_center, y_center, width, height = 0.5, 0.5, 1.0, 1.0
-
-            # كتابة label بصيغة YOLO: class_id x_center y_center width height
-            with open(label_path, "w") as f:
-                f.write(f"{class_id} {x_center} {y_center} {width} {height}\n")
-
-print("✅ Conversion completed successfully! Check the folder 'data_yolo/'")
+print("✅ YOLO dataset done", DEST_DIR)
