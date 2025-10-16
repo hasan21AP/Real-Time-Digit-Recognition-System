@@ -5,7 +5,7 @@ from tqdm import tqdm
 # ============================================
 # 1️⃣ إعداد المسارات
 # ============================================
-base_dir = "data_unified"
+base_dir = "data_unified_64"
 
 # مجلدات الأرقام
 digits_dirs = [
@@ -33,7 +33,7 @@ os.makedirs(none_dir, exist_ok=True)
 def save_image(src_path, dest_folder):
     try:
         img = Image.open(src_path).convert("L")  # تحويل إلى grayscale
-        img = img.resize((128, 128))
+        img = img.resize((64, 64))
         filename = os.path.basename(src_path)
         dest_path = os.path.join(dest_folder, filename)
         img.save(dest_path)

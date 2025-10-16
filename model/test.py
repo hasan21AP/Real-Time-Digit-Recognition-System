@@ -32,7 +32,7 @@ def load_model():
     #         predicted_label = labels[predicted]
     #     print(f"Actual number: {number} (Predicted number: {predicted_label})")
     
-    img_path = "captures/1760463170.png"
+    img_path = "captures/1760529461.png"
     image = Image.open(img_path)
     image = transform(image).unsqueeze(0)  # Add batch dimension
     with torch.no_grad():

@@ -15,6 +15,9 @@ env/
 *.h5
 *.pt
 *.ckpt
+*.png
+*.jpg
+*.jpeg
 data/
 datasets/
 data_unified/

@@ -7,7 +7,7 @@ import os
 from torch.utils.data import DataLoader, random_split
 
 
-path = "data_unified"
+path = "data_unified_64"
 
 
 data_dir = os.path.join(path)
@@ -15,11 +15,11 @@ data_dir = os.path.join(path)
 # Data augmentation and normalization for training
 transform = transforms.Compose([
     transforms.Grayscale(),  # Make sure images are single channel
-    transforms.Resize((128, 128)), # Resize to 28x28
+    transforms.Resize((64, 64)), # Resize to 28x28
     transforms.RandomRotation(20), # Simple Rotation +- 20 degrees
-    transforms.RandomAffine(0, translate=(0.15, 0.15)),  # Random translation 15%
+    transforms.RandomAffine(0, translate=(0.15, 0.15), scale=(0.5, 1.2)),  # Random translation 15%
     transforms.RandomPerspective(distortion_scale=0.2, p=0.5), # Random Perspective
-    transforms.ColorJitter(brightness=0.5, contrast=0.5), # Random brightness/contrast change
+    transforms.ColorJitter(brightness=0.3, contrast=0.3), # Random brightness/contrast change
     transforms.ToTensor(), # Convert image to tensor [0,1]
     transforms.Normalize((0.5,), (0.5,)) # Normalize to range [-1,1]
 ])

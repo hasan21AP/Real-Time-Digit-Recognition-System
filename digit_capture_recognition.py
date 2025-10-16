@@ -9,7 +9,7 @@ import time, os
 
 
 # Loading Models
-yolo = YOLO("yolo/runs/detect/yolo_digits/weights/best.pt")
+yolo = YOLO("weights/best.pt")
 
 model = RecognizeNumbersModel()
 model.load_state_dict(torch.load("weights/kaggle_printed_digits.pth", map_location=torch.device('cpu'), weights_only=True))
@@ -23,7 +23,7 @@ ANDROID_CAM_MADAR = "http://10.35.92.27:4747/video?fps=30"
 # Transformations
 transform = transforms.Compose([
     transforms.Grayscale(),        # One channel
-    transforms.Resize((128, 128)),
+    transforms.Resize((64, 64)),
     transforms.ToTensor(),
     transforms.Normalize((0.5,), (0.5,))
 ])  
@@ -58,10 +58,22 @@ while True:
                     # Analyze the captured ROI
                     roi = cv2.resize(roi, (128, 128))
                     img = Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB, ))
+                    
                     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-                    _, thresh = cv2.threshold(gray, 128, 255, cv2.THRESH_OTSU)
-                    img = Image.fromarray(thresh)
-                    img = transform(img).unsqueeze(0)
+                    gray = cv2.GaussianBlur(gray, (3,3), 0)
+                    gray = cv2.equalizeHist(gray)
+                    
+                    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+                    if thresh.mean() < 127:
+                        thresh = cv2.bitwise_not(thresh)
+                        
+                    x, y, w, h = cv2.boundingRect(thresh)
+                    digit = thresh[y:y+h, x:x+w]
+                    digit = cv2.copyMakeBorder(digit, 8, 8, 8, 8, cv2.BORDER_CONSTANT, value=255)
+                    digit = cv2.resize(digit, (64, 64))
+                    
+                    img = Image.fromarray(digit)
+                    img = transform(img).unsqueeze(0)  # Add batch dimension        
         
                     with torch.no_grad():
                         output = model(img)
