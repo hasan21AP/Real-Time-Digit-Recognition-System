@@ -34,6 +34,7 @@ os.makedirs("captures", exist_ok=True)
 
 last_capture_time = 0
 min_interval = 2.0
+counter = 0
 
 while True:
     ret, frame = cap.read()
@@ -50,7 +51,7 @@ while True:
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
                 if time.time() - last_capture_time > min_interval:
                     roi = frame[y1:y2, x1:x2]
-                    filename = f"captures/{int(time.time())}.png"
+                    filename = f"captures/Roi{counter}.png"
                     cv2.imwrite(filename, roi)
                     print(f"📸 Screenshot {conf:.2f} And saved in {filename}")
                     last_capture_time = time.time()
@@ -64,17 +65,21 @@ while True:
                     gray = cv2.equalizeHist(gray)
                     
                     _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-                    if thresh.mean() < 127:
-                        thresh = cv2.bitwise_not(thresh)
-                        
-                    x, y, w, h = cv2.boundingRect(thresh)
-                    digit = thresh[y:y+h, x:x+w]
-                    digit = cv2.copyMakeBorder(digit, 8, 8, 8, 8, cv2.BORDER_CONSTANT, value=255)
-                    digit = cv2.resize(digit, (64, 64))
+                    
+                    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    if contours:
+                        x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
+                        digit = thresh[y:y+h, x:x+w]
+                        digit = cv2.copyMakeBorder(digit, 8, 8, 8, 8, cv2.BORDER_CONSTANT, value=255)
+                        digit = cv2.resize(digit, (64, 64))
                     
                     img = Image.fromarray(digit)
-                    img = transform(img).unsqueeze(0)  # Add batch dimension        
-        
+                    img = transform(img).unsqueeze(0)  # Add batch dimension  
+                    cv2.imshow("Processed Digit", img.squeeze().numpy()) 
+                    filename = f"captures/Tensor{counter}.png"
+                    cv2.imwrite(filename, img.squeeze().numpy())  
+                    counter += 1
+                
                     with torch.no_grad():
                         output = model(img)
                         probs = torch.softmax(output, dim=1)

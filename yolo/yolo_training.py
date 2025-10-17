@@ -6,13 +6,24 @@ def main():
 
     # تدريب الموديل
     model.train(
-        data="yolo/digits.yaml",     # ملف إعداد البيانات
-        epochs=50,              # عدد الدورات التدريبية
-        imgsz=128,              # حجم الصور الفعلي (نفس حجم بياناتك)
-        batch=16,               # حجم الدفعة
-        name="yolo_digits_128", # اسم مجلد النتائج
-        device=0,               # استخدم GPU (RTX 3050)
-        amp=False               # تعطيل mixed precision لتفادي مشاكل CUDA
+    optimizer="AdamW",
+    lr0=0.001,
+    patience=15,
+    data="yolo/digits.yaml",
+    epochs=100,
+    imgsz=640,
+    batch=16,
+    name="yolo_digits_tight_v1",
+    device=0,
+    mosaic=0.3,     
+    rect=True,    
+    hsv_h=0.02,          
+    hsv_v=0.4,           
+    degrees=5,           
+    translate=0.08,      
+    scale=0.3           
+    
+
     )
 
 if __name__ == "__main__":

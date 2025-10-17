@@ -1,6 +1,7 @@
 import os
 import random
 import cv2
+import numpy as np
 
 SRC_DIR = "data_unified"
 DEST_DIR = "data_yolo"
@@ -11,18 +12,11 @@ TARGET_SIZE = (128, 128)
 for folder in ["images/train", "images/val", "labels/train", "labels/val"]:
     os.makedirs(os.path.join(DEST_DIR, folder), exist_ok=True)
 
-# الفئات 0–9 فقط (استبعاد none نهائيًا)
+# الفئات 0–9 فقط (استبعاد none)
 classes = [c for c in sorted(os.listdir(SRC_DIR)) if c.isdigit()]
 class_to_id = {cls_name: i for i, cls_name in enumerate(classes)}
 
 print("📘 Class IDs:", class_to_id)
-
-def resize_and_save(src, dst):
-    img = cv2.imread(src)
-    if img is None:
-        return
-    resized = cv2.resize(img, TARGET_SIZE, interpolation=cv2.INTER_AREA)
-    cv2.imwrite(dst, resized)
 
 # معالجة كل فئة رقمية
 for cls_name in classes:
@@ -34,15 +28,25 @@ for cls_name in classes:
 
     for split, split_imgs in [("train", train_imgs), ("val", val_imgs)]:
         for img_name in split_imgs:
-            src_img = os.path.join(cls_path, img_name)
-            dst_img = os.path.join(DEST_DIR, f"images/{split}/{img_name}")
-            resize_and_save(src_img, dst_img)
+            img_path = os.path.join(cls_path, img_name)
+            img = cv2.imread(img_path)
+            if img is None:
+                continue
 
-            label_name = os.path.splitext(img_name)[0] + ".txt"
-            dst_label = os.path.join(DEST_DIR, f"labels/{split}/{label_name}")
-            class_id = class_to_id[cls_name]
+            # إنشاء خلفية 512x512 ووضع الصورة في المنتصف
+            h, w, _ = img.shape
+            canvas = 255 * np.ones((512, 512, 3), dtype=np.uint8)
+            x = (512 - w) // 2
+            y = (512 - h) // 2
+            canvas[y:y+h, x:x+w] = img
 
-            with open(dst_label, "w") as f:
-                f.write(f"{class_id} 0.5 0.5 1.0 1.0\n")
+            # حفظ الصورة الجديدة
+            out_path = os.path.join(DEST_DIR, f"images/{split}", f"{cls_name}_{img_name}")
+            cv2.imwrite(out_path, canvas)
 
-print("✅ YOLO dataset done", DEST_DIR)
+            # إنشاء ملف التسمية (YOLO label)
+            label_path = os.path.join(DEST_DIR, f"labels/{split}", f"{cls_name}_{img_name.rsplit('.',1)[0]}.txt")
+            with open(label_path, "w") as f:
+                f.write(f"{class_to_id[cls_name]} 0.5 0.5 1.0 1.0\n")
+
+print("✅ YOLO dataset prepared successfully:", DEST_DIR)

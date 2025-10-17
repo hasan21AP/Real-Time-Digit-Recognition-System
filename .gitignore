@@ -13,7 +13,7 @@ env/
 # Data and Models
 # *.pth
 *.h5
-*.pt
+# *.pt
 *.ckpt
 *.png
 *.jpg
