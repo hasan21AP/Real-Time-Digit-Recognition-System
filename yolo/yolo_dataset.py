@@ -1,52 +1,59 @@
 import os
 import random
-import cv2
-import numpy as np
+import shutil
+from difflib import get_close_matches
 
-SRC_DIR = "data_unified"
-DEST_DIR = "data_yolo"
-VAL_SPLIT = 0.2
-TARGET_SIZE = (128, 128)
+# === Configuration ===
+SRC_DIR = "yolo_data"              # Folder that contains images/ and labels/
+DEST_DIR = "yolo_data_ready"       # Output folder
+VAL_SPLIT = 0.2                    # 20% for validation
 
-# إنشاء المجلدات المطلوبة
+# === Create destination folders ===
 for folder in ["images/train", "images/val", "labels/train", "labels/val"]:
     os.makedirs(os.path.join(DEST_DIR, folder), exist_ok=True)
 
-# الفئات 0–9 فقط (استبعاد none)
-classes = [c for c in sorted(os.listdir(SRC_DIR)) if c.isdigit()]
-class_to_id = {cls_name: i for i, cls_name in enumerate(classes)}
+# === Collect all image files ===
+images_dir = os.path.join(SRC_DIR, "images")
+labels_dir = os.path.join(SRC_DIR, "labels")
 
-print("📘 Class IDs:", class_to_id)
+all_images = [f for f in os.listdir(images_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+random.shuffle(all_images)
 
-# معالجة كل فئة رقمية
-for cls_name in classes:
-    cls_path = os.path.join(SRC_DIR, cls_name)
-    imgs = [f for f in os.listdir(cls_path) if f.lower().endswith((".png", ".jpg", ".jpeg"))]
-    random.shuffle(imgs)
-    split_idx = int(len(imgs) * (1 - VAL_SPLIT))
-    train_imgs, val_imgs = imgs[:split_idx], imgs[split_idx:]
+split_index = int(len(all_images) * (1 - VAL_SPLIT))
+train_imgs = all_images[:split_index]
+val_imgs = all_images[split_index:]
 
-    for split, split_imgs in [("train", train_imgs), ("val", val_imgs)]:
-        for img_name in split_imgs:
-            img_path = os.path.join(cls_path, img_name)
-            img = cv2.imread(img_path)
-            if img is None:
-                continue
+def find_matching_label(img_name, all_labels):
+    """Finds the most similar label filename based on partial match."""
+    name_root = os.path.splitext(img_name)[0]
+    matches = get_close_matches(name_root, all_labels, n=1, cutoff=0.3)
+    return matches[0] if matches else None
 
-            # إنشاء خلفية 512x512 ووضع الصورة في المنتصف
-            h, w, _ = img.shape
-            canvas = 255 * np.ones((512, 512, 3), dtype=np.uint8)
-            x = (512 - w) // 2
-            y = (512 - h) // 2
-            canvas[y:y+h, x:x+w] = img
+def copy_pair(img_list, split):
+    """Copy images and matching labels (even if names differ slightly)."""
+    all_labels = os.listdir(labels_dir)
+    copied, missing = 0, 0
 
-            # حفظ الصورة الجديدة
-            out_path = os.path.join(DEST_DIR, f"images/{split}", f"{cls_name}_{img_name}")
-            cv2.imwrite(out_path, canvas)
+    for img_name in img_list:
+        img_src = os.path.join(images_dir, img_name)
+        img_dst = os.path.join(DEST_DIR, f"images/{split}", img_name)
+        shutil.copy(img_src, img_dst)
 
-            # إنشاء ملف التسمية (YOLO label)
-            label_path = os.path.join(DEST_DIR, f"labels/{split}", f"{cls_name}_{img_name.rsplit('.',1)[0]}.txt")
-            with open(label_path, "w") as f:
-                f.write(f"{class_to_id[cls_name]} 0.5 0.5 1.0 1.0\n")
+        match_label = find_matching_label(img_name, all_labels)
+        if match_label:
+            label_src = os.path.join(labels_dir, match_label)
+            label_dst = os.path.join(DEST_DIR, f"labels/{split}", os.path.splitext(img_name)[0] + ".txt")
+            shutil.copy(label_src, label_dst)
+            copied += 1
+        else:
+            print(f"⚠️ Missing label for {img_name}")
+            missing += 1
 
-print("✅ YOLO dataset prepared successfully:", DEST_DIR)
+    print(f"✅ {split.capitalize()} set: {copied} matched, {missing} missing")
+
+# === Copy training and validation data ===
+copy_pair(train_imgs, "train")
+copy_pair(val_imgs, "val")
+
+print(f"\n✅ YOLO dataset prepared successfully in '{DEST_DIR}'")
+print(f"📊 Train: {len(train_imgs)}, Val: {len(val_imgs)}")

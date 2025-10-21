@@ -1,101 +1,168 @@
+##### Car Racing Digit Recognition #####
+# Author: Hasan Game (based on EJ Technology Consultants structure)
+# Description:
+# This script uses a custom YOLO model to detect printed numbers in live camera frames.
+# Then, each detected ROI (digit area) is processed and recognized using a trained CNN model.
+# The result is displayed in real-time with confidence values.
+
+import os
 import cv2
+import time
 import torch
 from PIL import Image
 import torchvision.transforms as transforms
 from model.model import RecognizeNumbersModel
 from ultralytics import YOLO
-import time, os
 
+########################################
+#           CONFIGURATION
+########################################
+YOLO_MODEL_PATH = "weights/best.pt"
+CNN_MODEL_PATH = "weights/kaggle_printed_digits.pth"
+CONF_THRESHOLD = 0.5
+CAPTURE_INTERVAL = 2.0
+CAMERA_SRC = "http://192.168.0.33:4747/video"  # Android cam
+# CAMERA_SRC = 0  # for laptop webcam
 
+SAVE_DIR = "captures"
+os.makedirs(SAVE_DIR, exist_ok=True)
 
-# Loading Models
-yolo = YOLO("weights/best.pt")
+########################################
+#           MODEL LOADING
+########################################
+print("🚀 Loading models...")
+yolo = YOLO(YOLO_MODEL_PATH)
 
 model = RecognizeNumbersModel()
-model.load_state_dict(torch.load("weights/kaggle_printed_digits.pth", map_location=torch.device('cpu'), weights_only=True))
+model.load_state_dict(torch.load(CNN_MODEL_PATH, weights_only=True))
 model.eval()
 
-LAP_CAM = 0
-ANDROID_CAM = "http://192.168.0.33:4747/video"
-ANDROID_CAM_MADAR = "http://10.35.92.27:4747/video?fps=30"
-
-
-# Transformations
+########################################
+#           IMAGE TRANSFORMS
+########################################
 transform = transforms.Compose([
-    transforms.Grayscale(),        # One channel
-    transforms.Resize((64, 64)),
+    transforms.Grayscale(),
+    transforms.Resize((256, 256)),
     transforms.ToTensor(),
     transforms.Normalize((0.5,), (0.5,))
-])  
+])
 
-# Open Camera
-cap = cv2.VideoCapture(ANDROID_CAM)
-os.makedirs("captures", exist_ok=True)
+########################################
+#           CAMERA INITIALIZATION
+########################################
+cap = cv2.VideoCapture(CAMERA_SRC)
+if not cap.isOpened():
+    print("❌ Failed to open camera stream.")
+    exit()
 
+print("✅ Camera initialized successfully.")
 last_capture_time = 0
-min_interval = 2.0
 counter = 0
+labels = [str(i) for i in range(10)] + ["none"]
 
+########################################
+#           MAIN LOOP
+########################################
 while True:
     ret, frame = cap.read()
     if not ret:
+        print("⚠️ Unable to read frame from camera.")
         break
-    
-    results = yolo(frame, verbose=False )
-    detections = results[0].boxes
-    
-    if len(detections) > 0:
-        for box in detections:
-            conf = float(box.conf[0])
-            if conf > 0.6:  # Confidence threshold
-                x1, y1, x2, y2 = map(int, box.xyxy[0])
-                if time.time() - last_capture_time > min_interval:
-                    roi = frame[y1:y2, x1:x2]
-                    filename = f"captures/Roi{counter}.png"
-                    cv2.imwrite(filename, roi)
-                    print(f"📸 Screenshot {conf:.2f} And saved in {filename}")
-                    last_capture_time = time.time()
 
-                    # Analyze the captured ROI
-                    roi = cv2.resize(roi, (128, 128))
-                    img = Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB, ))
-                    
-                    gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-                    gray = cv2.GaussianBlur(gray, (3,3), 0)
-                    gray = cv2.equalizeHist(gray)
-                    
-                    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-                    
-                    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                    if contours:
-                        x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
-                        digit = thresh[y:y+h, x:x+w]
-                        digit = cv2.copyMakeBorder(digit, 8, 8, 8, 8, cv2.BORDER_CONSTANT, value=255)
-                        digit = cv2.resize(digit, (64, 64))
-                    
-                    img = Image.fromarray(digit)
-                    img = transform(img).unsqueeze(0)  # Add batch dimension  
-                    cv2.imshow("Processed Digit", img.squeeze().numpy()) 
-                    filename = f"captures/Tensor{counter}.png"
-                    cv2.imwrite(filename, img.squeeze().numpy())  
-                    counter += 1
+    # Run YOLO detection
+    results = yolo(frame, verbose=False)
+    detections = results[0].boxes
+
+    detected_digits = []  # store all recognized digits for display
+
+    # Draw YOLO detections
+    for box in detections:
+        conf = float(box.conf[0])
+        if conf < CONF_THRESHOLD:
+            continue
+
+        x1, y1, x2, y2 = map(int, box.xyxy[0])
+        roi = frame[y1:y2, x1:x2]
+
+        # Process ROI every few seconds
+        if time.time() - last_capture_time > CAPTURE_INTERVAL:
+            last_capture_time = time.time()
+
+            # Save ROI
+            filename = os.path.join(SAVE_DIR, f"Roi_{counter}.png")
+            cv2.imwrite(filename, roi)
+            print(f"📸 Saved ROI {counter} with conf {conf:.2f} -> {filename}")
+
+            # Preprocess for CNN model
+            gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+            gray = cv2.GaussianBlur(gray, (3, 3), 0)
+            gray = cv2.equalizeHist(gray)
+            _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+            contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            if contours:
+                x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
+                digit = thresh[y:y+h, x:x+w]
+                digit = cv2.copyMakeBorder(digit, 8, 8, 8, 8, cv2.BORDER_CONSTANT, value=255)
+                digit = cv2.resize(digit, (256, 256))
+
+                img_pil = Image.fromarray(digit)
+                img_tensor = transform(img_pil).unsqueeze(0)
+                filename = os.path.join(SAVE_DIR, f"Tensor_{counter}.png")
+                cv2.imwrite(filename, img_tensor.squeeze())
                 
-                    with torch.no_grad():
-                        output = model(img)
-                        probs = torch.softmax(output, dim=1)
-                        confidence, predicted = torch.max(probs, dim=1)
-                        
-                    labels = ["0","1","2","3","4","5","6","7","8","9","none"]
+
+                # Inference
+                with torch.no_grad():
+                    output = model(img_tensor)
+                    probs = torch.softmax(output, dim=1)
+
+                    # Handle cases where batch>1
+                    if probs.dim() > 2:
+                        probs = probs.mean(dim=0, keepdim=True)
+
+                    confidence, predicted = torch.max(probs, dim=1)
+                    predicted = predicted.view(-1)[0]
                     number = labels[predicted.item()]
-                    print(f"🔢 Predicted number: {number} (Confidence: {confidence.item():.2f})")
-                # Draw bounding box
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-                cv2.putText(frame, f"{conf:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
-                
-        
-    cv2.imshow('Camera', frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+                    conf_num = confidence[0].item()
+
+                detected_digits.append((number, conf_num))
+                print(f"🔢 Detected: {number} (Conf: {conf_num:.2f})")
+
+                counter += 1
+
+        # Draw bounding box on frame
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 200, 255), 2)
+        cv2.putText(frame, f"{conf:.2f}", (x1, y1 - 8),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+
+    ########################################
+    #           DRAW UI PANEL
+    ########################################
+    cv2.rectangle(frame, (10, 10), (360, 110), (30, 30, 30), cv2.FILLED)
+    cv2.putText(frame, f"Detections: {len(detected_digits)}",
+                (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 200, 0), 2)
+
+    if detected_digits:
+        last_digit, conf_val = detected_digits[-1]
+        cv2.putText(frame, f"Last digit: {last_digit} ({conf_val:.2f})",
+                    (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+
+    # Display camera feed
+    cv2.imshow("Digit Detection", frame)
+
+    key = cv2.waitKey(5)
+    if key == ord('q'):
         break
-    
+    elif key == ord('s'):
+        cv2.waitKey()
+    elif key == ord('p'):
+        cv2.imwrite("preview.png", frame)
+        print("🖼️ Saved snapshot preview.png")
+
+########################################
+#           CLEANUP
+########################################
 cap.release()
 cv2.destroyAllWindows()
+print("✅ Process finished successfully.")

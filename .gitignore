@@ -22,6 +22,9 @@ data/
 datasets/
 data_unified/
 data_yolo/
+data_real/
+yolo_data/
+yolo_data_ready/
 
 # Logs and cache
 logs/

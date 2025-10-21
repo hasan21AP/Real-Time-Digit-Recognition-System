@@ -16,7 +16,7 @@ class RecognizeNumbersModel(nn.Module):
         # Convolution 4: 64 -> 128 Features Maps
         self.conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1, stride= 2)
         # Fully Connected Layers
-        self.fc1 = nn.Linear(in_features=256 * 2 * 2, out_features=256)  
+        self.fc1 = nn.Linear(in_features=256 * 4 * 4, out_features=256)  
         self.fc2 = nn.Linear(in_features=256, out_features=11)
         self.dropout = nn.Dropout(0.5)
         self.relu = nn.ReLU()
@@ -28,7 +28,7 @@ class RecognizeNumbersModel(nn.Module):
         x = self.relu(self.conv3(x))
         x = self.relu(self.conv4(x))
         x = self.relu(self.conv5(x))
-        x = x.view(-1, 256 * 2 * 2)
+        x = x.view(-1, 256 * 4 * 4)
         x = self.relu(self.fc1(x))
         x = self.dropout(x)
         x = self.fc2(x)
