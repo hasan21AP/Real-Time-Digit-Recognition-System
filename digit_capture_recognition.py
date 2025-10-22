@@ -21,7 +21,7 @@ YOLO_MODEL_PATH = "weights/best.pt"
 CNN_MODEL_PATH = "weights/kaggle_printed_digits.pth"
 CONF_THRESHOLD = 0.5
 CAPTURE_INTERVAL = 2.0
-CAMERA_SRC = "http://192.168.0.33:4747/video"  # Android cam
+CAMERA_SRC = "http://192.168.0.33:4747/video?fps=60"  # Android cam
 # CAMERA_SRC = 0  # for laptop webcam
 
 SAVE_DIR = "captures"
@@ -94,42 +94,31 @@ while True:
             print(f"📸 Saved ROI {counter} with conf {conf:.2f} -> {filename}")
 
             # Preprocess for CNN model
-            gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-            gray = cv2.GaussianBlur(gray, (3, 3), 0)
-            gray = cv2.equalizeHist(gray)
-            _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-            contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            if contours:
-                x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
-                digit = thresh[y:y+h, x:x+w]
-                digit = cv2.copyMakeBorder(digit, 8, 8, 8, 8, cv2.BORDER_CONSTANT, value=255)
-                digit = cv2.resize(digit, (256, 256))
+            img_pil = Image.fromarray(roi)
+            img_tensor = transform(img_pil).unsqueeze(0)
+            filename = os.path.join(SAVE_DIR, f"Tensor_{counter}.png")
+            cv2.imshow("Digit", roi)
+            
 
-                img_pil = Image.fromarray(digit)
-                img_tensor = transform(img_pil).unsqueeze(0)
-                filename = os.path.join(SAVE_DIR, f"Tensor_{counter}.png")
-                cv2.imwrite(filename, img_tensor.squeeze())
-                
+            # Inference
+            with torch.no_grad():
+                output = model(img_tensor)
+                probs = torch.softmax(output, dim=1)
 
-                # Inference
-                with torch.no_grad():
-                    output = model(img_tensor)
-                    probs = torch.softmax(output, dim=1)
+                # Handle cases where batch>1
+                if probs.dim() > 2:
+                    probs = probs.mean(dim=0, keepdim=True)
 
-                    # Handle cases where batch>1
-                    if probs.dim() > 2:
-                        probs = probs.mean(dim=0, keepdim=True)
+                confidence, predicted = torch.max(probs, dim=1)
+                predicted = predicted.view(-1)[0]
+                number = labels[predicted.item()]
+                conf_num = confidence[0].item()
 
-                    confidence, predicted = torch.max(probs, dim=1)
-                    predicted = predicted.view(-1)[0]
-                    number = labels[predicted.item()]
-                    conf_num = confidence[0].item()
+            detected_digits.append((number, conf_num))
+            print(f"🔢 Detected: {number} (Conf: {conf_num:.2f})")
 
-                detected_digits.append((number, conf_num))
-                print(f"🔢 Detected: {number} (Conf: {conf_num:.2f})")
-
-                counter += 1
+            counter += 1
 
         # Draw bounding box on frame
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 200, 255), 2)

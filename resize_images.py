@@ -8,7 +8,7 @@ input_folder = r"E:\Visual_Studio_Work_Place\Cars_Racing_Tracking_System\data_un
 output_folder = r"E:\Visual_Studio_Work_Place\Cars_Racing_Tracking_System\data_resized"
 
 # Target image size (width, height)
-TARGET_SIZE = (128, 128)
+TARGET_SIZE = (256, 256)
 
 # Create the output directory if it doesn't exist
 os.makedirs(output_folder, exist_ok=True)
@@ -34,4 +34,4 @@ for root, dirs, files in os.walk(input_folder):
             save_path = os.path.join(save_dir, file)
             cv2.imwrite(save_path, resized)
 
-print("✅ All images have been successfully resized to 128×128!")
+print("✅ All images have been successfully resized to 256×256!")

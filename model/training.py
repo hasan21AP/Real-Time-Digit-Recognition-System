@@ -15,7 +15,7 @@ data_dir = os.path.join(path)
 # Data augmentation and normalization for training
 transform = transforms.Compose([
     transforms.Grayscale(),  # Make sure images are single channel
-    transforms.Resize((128, 128)), # Resize to 128x128
+    transforms.Resize((256, 256)), # Resize to 256x256
     transforms.RandomRotation(20), # Simple Rotation +- 20 degrees
     transforms.RandomAffine(0, translate=(0.15, 0.15), scale=(0.5, 1.2)),  # Random translation 15%
     transforms.RandomPerspective(distortion_scale=0.2, p=0.5), # Random Perspective
