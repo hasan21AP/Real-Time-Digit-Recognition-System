@@ -24,7 +24,10 @@ data_unified/
 data_yolo/
 data_real/
 yolo_data/
+yolo_data_v2/
 yolo_data_ready/
+yolo_data_ready_v2/
+runs/
 
 # Logs and cache
 logs/

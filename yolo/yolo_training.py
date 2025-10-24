@@ -10,10 +10,10 @@ def main():
         lr0=0.001,                  # Initial learning rate
         patience=20,                # Early stopping patience
         data="yolo/digits.yaml",    # Dataset configuration file
-        epochs=200,                 # Number of training epochs
+        epochs=500,                 # Number of training epochs
         imgsz=640,                  # Image size during training
         batch=16,                   # Batch size
-        name="yolo_digits_detector_v3",  # Experiment name
+        name="yolo_digits_detector_v4",  # Experiment name
         device=0,                   # Use GPU 0 (or "cpu" if no GPU)
         
         # Data augmentation (make model robust to lighting and distance)

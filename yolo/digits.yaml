@@ -1,5 +1,5 @@
-train: ../yolo_data_ready/images/train
-val: ../yolo_data_ready/images/val
+train: ../yolo_data_ready_v2/images/train
+val: ../yolo_data_ready_v2/images/val
 
 nc: 10
 names: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]

@@ -17,7 +17,7 @@ from ultralytics import YOLO
 ########################################
 #           CONFIGURATION
 ########################################
-YOLO_MODEL_PATH = "weights/best.pt"
+YOLO_MODEL_PATH = "weights/yolo_trained_v4.pt"
 CNN_MODEL_PATH = "weights/kaggle_printed_digits.pth"
 CONF_THRESHOLD = 0.5
 CAPTURE_INTERVAL = 2.0
@@ -42,7 +42,7 @@ model.eval()
 ########################################
 transform = transforms.Compose([
     transforms.Grayscale(),
-    transforms.Resize((256, 256)),
+    transforms.Resize((128, 128)),
     transforms.ToTensor(),
     transforms.Normalize((0.5,), (0.5,))
 ])

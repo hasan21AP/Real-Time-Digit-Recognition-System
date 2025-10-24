@@ -4,8 +4,8 @@ import shutil
 from difflib import get_close_matches
 
 # === Configuration ===
-SRC_DIR = "yolo_data"              # Folder that contains images/ and labels/
-DEST_DIR = "yolo_data_ready"       # Output folder
+SRC_DIR = "yolo_data_v2"              # Folder that contains images/ and labels/
+DEST_DIR = "yolo_data_ready_v2"       # Output folder
 VAL_SPLIT = 0.2                    # 20% for validation
 
 # === Create destination folders ===

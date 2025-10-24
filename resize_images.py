@@ -5,10 +5,10 @@ import os
 input_folder = r"E:\Visual_Studio_Work_Place\Cars_Racing_Tracking_System\data_unified"
 
 # Path to save resized images
-output_folder = r"E:\Visual_Studio_Work_Place\Cars_Racing_Tracking_System\data_resized"
+output_folder = r"E:\Visual_Studio_Work_Place\Cars_Racing_Tracking_System\data_resized_128"
 
 # Target image size (width, height)
-TARGET_SIZE = (256, 256)
+TARGET_SIZE = (128, 128)
 
 # Create the output directory if it doesn't exist
 os.makedirs(output_folder, exist_ok=True)
