@@ -20,7 +20,6 @@ from ultralytics import YOLO
 YOLO_MODEL_PATH = "weights/yolo_trained_v4.pt"
 CNN_MODEL_PATH = "weights/kaggle_printed_digits.pth"
 CONF_THRESHOLD = 0.5
-CAPTURE_INTERVAL = 2.0
 CAMERA_SRC = "http://192.168.0.33:4747/video?fps=60"  # Android cam
 # CAMERA_SRC = 0  # for laptop webcam
 
@@ -56,9 +55,13 @@ if not cap.isOpened():
     exit()
 
 print("✅ Camera initialized successfully.")
-last_capture_time = 0
 counter = 0
 labels = [str(i) for i in range(10)] + ["none"]
+
+# Track previously detected digits to avoid duplicate processing
+processed_digits = {}
+DIGIT_MEMORY_TIME = 1  # Remember digits for 3 seconds
+digit = None
 
 ########################################
 #           MAIN LOOP
@@ -74,32 +77,47 @@ while True:
     detections = results[0].boxes
 
     detected_digits = []  # store all recognized digits for display
+    current_time = time.time()
 
-    # Draw YOLO detections
+    # Clean up old processed digits
+    processed_digits = {digit: timestamp for digit, timestamp in processed_digits.items() 
+                       if current_time - timestamp < DIGIT_MEMORY_TIME}
+
+    # Draw YOLO detections and process new digits
     for box in detections:
         conf = float(box.conf[0])
         if conf < CONF_THRESHOLD:
             continue
 
         x1, y1, x2, y2 = map(int, box.xyxy[0])
-        roi = frame[y1:y2, x1:x2]
+        
 
-        # Process ROI every few seconds
-        if time.time() - last_capture_time > CAPTURE_INTERVAL:
-            last_capture_time = time.time()
+        # Calculate center point of the detection for tracking
+        center_x = (x1 + x2) // 2
+        center_y = (y1 + y2) // 2
 
+        # Check if this is likely a new digit (not recently processed)
+        is_new_digit = True
+        for prev_digit, prev_time in processed_digits.items():
+            # Simple spatial-temporal filtering - if same position recently processed, skip
+            if current_time - prev_time < DIGIT_MEMORY_TIME:  # More aggressive filtering for recent detections
+                is_new_digit = False
+                break
+            if is_new_digit == False:
+                break
+        if is_new_digit:
+            roi = frame[y1:y2, x1:x2]
             # Save ROI
             filename = os.path.join(SAVE_DIR, f"Roi_{counter}.png")
             cv2.imwrite(filename, roi)
             print(f"📸 Saved ROI {counter} with conf {conf:.2f} -> {filename}")
 
             # Preprocess for CNN model
-
-            img_pil = Image.fromarray(roi)
+            img_pil = Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
             img_tensor = transform(img_pil).unsqueeze(0)
-            filename = os.path.join(SAVE_DIR, f"Tensor_{counter}.png")
-            cv2.imshow("Digit", roi)
             
+            # Show the detected digit
+            cv2.imshow("Digit", roi)
 
             # Inference
             with torch.no_grad():
@@ -113,11 +131,20 @@ while True:
                 confidence, predicted = torch.max(probs, dim=1)
                 predicted = predicted.view(-1)[0]
                 number = labels[predicted.item()]
+                print(f"The digit is: {digit} and the number is: {number}")
+                print(f"The condition is : {number == digit}")
+                if number == digit:
+                    is_new_digit = False
+                else:
+                    digit = number
                 conf_num = confidence[0].item()
 
             detected_digits.append((number, conf_num))
             print(f"🔢 Detected: {number} (Conf: {conf_num:.2f})")
 
+            # Mark this digit as processed
+            processed_digits[f"{number}_{center_x}_{center_y}"] = current_time
+            
             counter += 1
 
         # Draw bounding box on frame
@@ -131,11 +158,15 @@ while True:
     cv2.rectangle(frame, (10, 10), (360, 110), (30, 30, 30), cv2.FILLED)
     cv2.putText(frame, f"Detections: {len(detected_digits)}",
                 (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 200, 0), 2)
+    
+    # Show tracked digits count
+    cv2.putText(frame, f"Tracked: {len(processed_digits)}",
+                (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 255), 2)
 
     if detected_digits:
         last_digit, conf_val = detected_digits[-1]
         cv2.putText(frame, f"Last digit: {last_digit} ({conf_val:.2f})",
-                    (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+                    (20, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
 
     # Display camera feed
     cv2.imshow("Digit Detection", frame)
@@ -148,6 +179,10 @@ while True:
     elif key == ord('p'):
         cv2.imwrite("preview.png", frame)
         print("🖼️ Saved snapshot preview.png")
+    elif key == ord('c'):
+        # Clear processed digits memory
+        processed_digits.clear()
+        print("🔄 Cleared digit tracking memory")
 
 ########################################
 #           CLEANUP
