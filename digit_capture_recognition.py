@@ -26,7 +26,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 YOLO_MODEL_PATH = "weights/yolov5s_trained_v1.pt"
 CNN_MODEL_PATH = "weights/kaggle_printed_digits.pth"
 CONF_THRESHOLD = 0.85
-CAMERA_SRC = "http://192.168.0.33:4747/video?fps=60"  # Android cam
+CAMERA_SRC = "http://192.168.0.33:4747/video?fps=30"  # Android cam
 # CAMERA_SRC = 0  # for laptop webcam
 
 sys.path.append("yolov5")
@@ -38,10 +38,10 @@ os.makedirs(SAVE_DIR, exist_ok=True)
 #           MODEL LOADING
 ########################################
 print("🚀 Loading models...")
-yolo = torch.hub.load("yolov5", "custom", path="weights/yolov5s_trained_v1.pt", source="local")
+yolo = torch.hub.load("yolov5", "custom", path="weights/yolov5s_trained_v1.pt", source="local", device="cpu")
 
 model = RecognizeNumbersModel()
-model.load_state_dict(torch.load(CNN_MODEL_PATH, weights_only=True))
+model.load_state_dict(torch.load(CNN_MODEL_PATH, weights_only=True, map_location=torch.device('cpu')))
 model.eval()
 
 ########################################
