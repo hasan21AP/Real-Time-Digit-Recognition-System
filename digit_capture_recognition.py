@@ -12,16 +12,24 @@ import torch
 from PIL import Image
 import torchvision.transforms as transforms
 from model.model import RecognizeNumbersModel
-from ultralytics import YOLO
+# from yolov5 import YOLOv5
+import sys
+import warnings
+
+
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 
 ########################################
 #           CONFIGURATION
 ########################################
-YOLO_MODEL_PATH = "weights/yolo_trained_v4.pt"
+YOLO_MODEL_PATH = "weights/yolov5s_trained_v1.pt"
 CNN_MODEL_PATH = "weights/kaggle_printed_digits.pth"
-CONF_THRESHOLD = 0.5
+CONF_THRESHOLD = 0.85
 CAMERA_SRC = "http://192.168.0.33:4747/video?fps=60"  # Android cam
 # CAMERA_SRC = 0  # for laptop webcam
+
+sys.path.append("yolov5")
 
 SAVE_DIR = "captures"
 os.makedirs(SAVE_DIR, exist_ok=True)
@@ -30,7 +38,7 @@ os.makedirs(SAVE_DIR, exist_ok=True)
 #           MODEL LOADING
 ########################################
 print("🚀 Loading models...")
-yolo = YOLO(YOLO_MODEL_PATH)
+yolo = torch.hub.load("yolov5", "custom", path="weights/yolov5s_trained_v1.pt", source="local")
 
 model = RecognizeNumbersModel()
 model.load_state_dict(torch.load(CNN_MODEL_PATH, weights_only=True))
@@ -62,6 +70,7 @@ labels = [str(i) for i in range(10)] + ["none"]
 processed_digits = {}
 DIGIT_MEMORY_TIME = 1  # Remember digits for 3 seconds
 digit = None
+number = None
 
 ########################################
 #           MAIN LOOP
@@ -73,8 +82,9 @@ while True:
         break
 
     # Run YOLO detection
-    results = yolo(frame, verbose=False)
-    detections = results[0].boxes
+    results = yolo(frame)
+    detections = results.pandas().xyxy[0]
+
 
     detected_digits = []  # store all recognized digits for display
     current_time = time.time()
@@ -84,12 +94,12 @@ while True:
                        if current_time - timestamp < DIGIT_MEMORY_TIME}
 
     # Draw YOLO detections and process new digits
-    for box in detections:
-        conf = float(box.conf[0])
+    for _, box in detections.iterrows():
+        conf = float(box["confidence"])
         if conf < CONF_THRESHOLD:
             continue
 
-        x1, y1, x2, y2 = map(int, box.xyxy[0])
+        x1, y1, x2, y2 = int(box["xmin"]), int(box["ymin"]), int(box["xmax"]), int(box["ymax"])
         
 
         # Calculate center point of the detection for tracking
@@ -162,6 +172,8 @@ while True:
     # Show tracked digits count
     cv2.putText(frame, f"Tracked: {len(processed_digits)}",
                 (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 255), 2)
+    cv2.putText(frame, f"Digit is: {number}",
+                (20, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 255), 2)
 
     if detected_digits:
         last_digit, conf_val = detected_digits[-1]
