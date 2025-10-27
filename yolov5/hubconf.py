@@ -1,7 +1,5 @@
 # Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """
-adfjkdhsf
-
 PyTorch Hub models https://pytorch.org/hub/ultralytics_yolov5.
 
 Usage:
