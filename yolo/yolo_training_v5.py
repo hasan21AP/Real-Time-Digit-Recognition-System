@@ -6,14 +6,14 @@ import sys
 def main():
     # Set file paths
     data_yaml = "yolo/digits.yaml"
-    weights = "yolov5s.pt"
+    weights = "yolov5n.pt"
     project_name = "runs/train"
-    exp_name = "yolo5_digits_detector_v1"
+    exp_name = "yolo5_digits_detector_v2"
     
     # Training parameters
     epochs = 200
     batch_size = 16
-    img_size = 128
+    img_size = 320
     device = 0 if torch.cuda.is_available() else 'cpu'
     
     # Use the same Python interpreter as the current environment

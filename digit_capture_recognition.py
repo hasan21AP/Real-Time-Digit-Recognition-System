@@ -23,10 +23,10 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 ########################################
 #           CONFIGURATION
 ########################################
-YOLO_MODEL_PATH = "weights/yolov5s_trained_v1.pt"
+YOLO_MODEL_PATH = "weights/yolov5n_trained_v1.pt"
 CNN_MODEL_PATH = "weights/kaggle_printed_digits.pth"
 CONF_THRESHOLD = 0.85
-CAMERA_SRC = "http://192.168.0.33:4747/video?fps=60"  # Android cam
+CAMERA_SRC = "http://192.168.0.33:4747/video"  # Android cam
 # CAMERA_SRC = 0  # for laptop webcam
 
 sys.path.append("yolov5")
@@ -127,7 +127,7 @@ while True:
             img_tensor = transform(img_pil).unsqueeze(0)
             
             # Show the detected digit
-            cv2.imshow("Digit", roi)
+            # cv2.imshow("Digit", roi)
 
             # Inference
             with torch.no_grad():
