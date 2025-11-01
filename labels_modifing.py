@@ -2,7 +2,7 @@ import os
 import shutil
 
 # === Configuration ===
-SRC_DIR = "yolo_data_v2"  # Original folder containing images and labels
+SRC_DIR = "data/plates_data"  # Original folder containing images and labels
 
 def rename_labels_to_match_images():
     """Rename labels to match image names"""
@@ -18,7 +18,7 @@ def rename_labels_to_match_images():
         return
     
     # Create directory for new labels
-    new_labels_dir = os.path.join(SRC_DIR, "labels_renamed")
+    new_labels_dir = os.path.join(SRC_DIR, "data/plates_dataset_ready")
     os.makedirs(new_labels_dir, exist_ok=True)
     
     all_images = [f for f in os.listdir(images_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]

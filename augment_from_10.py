@@ -1,13 +1,11 @@
 import os, glob, cv2
 import albumentations as A
-import random
-import numpy as np
 
 # ---------- PATHS AND PARAMETERS ----------
-IN_IMG_DIR  = "capt_digits"            # Directory containing your 10 base images
-OUT_IMG_DIR = "data_real/images"       # Output folder for augmented images
-OUT_LBL_DIR = "data_real/labels"       # Output folder for YOLO label files
-AUG_PER_IMAGE = 300                    # Number of augmentations per image (e.g., 100–500)
+IN_IMG_DIR  = "capt_plates"            # Directory containing your 10 base images
+OUT_IMG_DIR = "data/plates/images"       # Output folder for augmented images
+OUT_LBL_DIR = "data/plates/labels"       # Output folder for YOLO label files
+AUG_PER_IMAGE = 200                    # Number of augmentations per image (e.g., 100–500)
 
 os.makedirs(OUT_IMG_DIR, exist_ok=True)
 os.makedirs(OUT_LBL_DIR, exist_ok=True)
@@ -19,10 +17,9 @@ transform = A.Compose([
     A.GaussNoise(var_limit=(5.0, 40.0), p=0.35),
     A.MotionBlur(blur_limit=5, p=0.2),
     A.MedianBlur(blur_limit=3, p=0.1),
-    A.Affine(scale=(0.7, 1.25), translate_percent=(0.12, 0.18),
+    A.Affine(scale=(0.9, 1.05),
              rotate=(-15, 15), shear=(-8, 8), p=0.9),
     A.Perspective(scale=(0.02, 0.06), p=0.35),
-    A.Downscale(scale_min=0.70, scale_max=0.95, p=0.3),
     A.ImageCompression(quality_lower=40, quality_upper=95, p=0.3),
 ], bbox_params=A.BboxParams(format='yolo', label_fields=['class_labels'], min_visibility=0.25))
 

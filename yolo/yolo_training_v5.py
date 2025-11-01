@@ -5,10 +5,10 @@ import sys
 
 def main():
     # Set file paths
-    data_yaml = "yolo/digits.yaml"
+    data_yaml = "yolo/plates.yaml"
     weights = "yolov5n.pt"
     project_name = "runs/train"
-    exp_name = "yolo5_digits_detector_v2"
+    exp_name = "yolo5_plates_detector_v1"
     
     # Training parameters
     epochs = 200

@@ -1,46 +1,38 @@
 import torch
-from .model import RecognizeNumbersModel
-from PIL import Image
 import torchvision.transforms as transforms
-import cv2
+from torch.utils.data import DataLoader
+from torchvision.datasets import ImageFolder
+from model.model import RecognizeNumbersModel
 
+# إعداد البيانات
+transform = transforms.Compose([
+    transforms.Grayscale(),
+    transforms.Resize((128, 128)),
+    transforms.ToTensor(),
+    transforms.Normalize((0.5,), (0.5,))
+])
 
-def load_model():
-    model = RecognizeNumbersModel()
-    model.load_state_dict(torch.load("weights/kaggle_printed_digits.pth", weights_only=True))
-    model.eval()   # وضع inference
+# مسار بيانات التحقق أو الاختبار
+test_data_dir = "data/data_unified"   # عدل المسار حسب مجلدك
+test_dataset = ImageFolder(root=test_data_dir, transform=transform)
+test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
+# تحميل النموذج
+model_path = "weights/kaggle_printed_digits.pth"
+model = RecognizeNumbersModel()
+model.load_state_dict(torch.load(model_path, map_location="cuda" if torch.cuda.is_available() else "cpu", weights_only=True))
+model.eval()
 
-    # نفس التحويل اللي استعملناه
-    transform = transforms.Compose([
-        transforms.Grayscale(),        # قناة وحدة
-        transforms.Resize((128, 128)),
-        transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,))
-    ])
+# التقييم
+correct = 0
+total = 0
 
-    # target_number = random.randrange(0, 10)
-    # for number in range(0, 10):
-    #     img_path = f"model/data/assets/{number}.png"
-    #     image = Image.open(img_path)
-    #     image = transform(image).unsqueeze(0)  # إضافة batch dimension
+with torch.no_grad():
+    for images, labels in test_loader:
+        outputs = model(images)
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
 
-    #     with torch.no_grad():
-    #         output = model(image)
-    #         labels = ["0","1","2","3","4","5","6","7","8","9","none"]
-    #         predicted = torch.argmax(output, dim=1).item()
-    #         predicted_label = labels[predicted]
-    #     print(f"Actual number: {number} (Predicted number: {predicted_label})")
-    
-    img_path = "captures/1760529461.png"
-    image = Image.open(img_path)
-    image = transform(image).unsqueeze(0)  # Add batch dimension
-    with torch.no_grad():
-        output = model(image)
-        labels = ["0","1","2","3","4","5","6","7","8","9","none"]
-        predicted = torch.argmax(output, dim=1).item()
-        predicted_label = labels[predicted]
-    print(f"Predicted number: {predicted_label}")
-    cv2.imshow("Image", cv2.imread(img_path))
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+accuracy = 100 * correct / total
+print(f"✅ CNN Model Accuracy: {accuracy:.2f}%  ({correct}/{total})")

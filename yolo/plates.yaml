@@ -1,0 +1,5 @@
+train: ../data/plates_data/images/train
+val: ../data/plates_data/images/val
+
+nc: 10
+names: ["plate"]
