@@ -1,4 +1,4 @@
-import digit_capture_recognition
+from digit_capture_recognition import digit_recognition_loop
 
 
-digit_capture_recognition
+digit_recognition_loop()
