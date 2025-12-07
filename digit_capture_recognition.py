@@ -26,16 +26,32 @@ except ImportError:
 ########################################
 #           CONFIGURATION
 ########################################
-YOLO_MODEL_PATH = "weights/yolov5n_trained_v1.pt"
+YOLO_MODEL_PATH = "weights/yolov5s_trained_v1.pt"
 CNN_MODEL_PATH = "weights/kaggle_printed_digits.pth"
-CONF_THRESHOLD = 0.85
-CAMERA_SRC = "http://192.168.0.33:4747/video?fps=30"  # Android cam
-# CAMERA_SRC = 0  # for laptop webcam
+CONF_THRESHOLD = 0.6
+CAMERA_SRC = 0  # laptop webcam by default (use phone stream if needed)
+ANDROID_SRC = "http://192.168.0.33:4747/video"
+
 
 sys.path.append("yolov5")
 
-SAVE_DIR = "captures"
-os.makedirs(SAVE_DIR, exist_ok=True)
+torch.set_num_threads(1)
+cv2.setNumThreads(1)
+
+########################################
+#           GLOBAL VARIABLES
+########################################
+counter = 0
+labels = [str(i) for i in range(10)] + ["none"]
+processed_digits = {}
+DIGIT_MEMORY_TIME = 1.0  # seconds
+current_digit = None
+frame_skip = 2  # process every 2nd frame to reduce load
+
+# Statistics variables
+start_time = time.time()
+total_frames_processed = 0
+fps_history = []
 
 ########################################
 #           PERFORMANCE MONITORING FUNCTIONS
@@ -165,20 +181,15 @@ def get_image_transforms():
 ########################################
 #           CAMERA INITIALIZATION FUNCTION
 ########################################
-cap = cv2.VideoCapture(CAMERA_SRC)
-if not cap.isOpened():
-    print("❌ Failed to open camera stream.")
-    exit()
-
-print("✅ Camera initialized successfully.")
-counter = 0
-labels = [str(i) for i in range(10)] + ["none"]
-
-# Track previously detected digits to avoid duplicate processing
-processed_digits = {}
-DIGIT_MEMORY_TIME = 1  # Remember digits for 3 seconds
-digit = None
-number = None
+def initialize_camera():
+    """Initialize camera with optimized settings"""
+    cap = cv2.VideoCapture(CAMERA_SRC)
+    if not cap.isOpened():
+        print("❌ Failed to open camera stream.")
+        sys.exit(1)
+    
+    print("✅ Camera initialized successfully.")
+    return cap
 
 ########################################
 #           YOLO DETECTION FUNCTION
@@ -411,6 +422,3 @@ def digit_recognition_loop():
 ########################################
 #           PROGRAM ENTRY POINT
 ########################################
-cap.release()
-cv2.destroyAllWindows()
-print("✅ Process finished successfully.")
