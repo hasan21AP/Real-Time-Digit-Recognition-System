@@ -6,9 +6,9 @@ import time
 counter = 0
 labels = [str(i) for i in range(10)] + ["none"]
 processed_digits = {}
-DIGIT_MEMORY_TIME = 1.0  # seconds
+DIGIT_MEMORY_TIME = 0.02  # seconds
 current_digit = None
-frame_skip = 2  # process every 2nd frame to reduce load
+frame_skip = 0  # process every 2nd frame to reduce load
 
 # Statistics variables
 start_time = time.time()
