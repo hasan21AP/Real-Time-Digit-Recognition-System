@@ -57,7 +57,7 @@ def get_process_ram_usage():
 def print_exit_statistics():
     """Print comprehensive statistics when exiting the program"""
     print("\n" + "="*60)
-    print("📊 PROGRAM EXIT STATISTICS - CPU OPTIMIZED")
+    print("📊 PROGRAM EXIT STATISTICS")
     print("="*60)
     
     # Calculate runtime

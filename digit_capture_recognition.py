@@ -1,5 +1,5 @@
 ##### Digit Recognition In Real Time (Simple Version - No Tracking) #####
-# Author: Hasan Game (simplified by ChatGPT)
+# Author: Alhassan Abdulmalik
 # Description:
 # Clean and simple version of the YOLO + CNN digit recognition system.
 # No tracker, no ghost frames. A box is drawn ONLY when we have detections
