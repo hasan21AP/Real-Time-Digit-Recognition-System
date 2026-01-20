@@ -3,11 +3,12 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms
-import os 
+import os
 from torch.utils.data import DataLoader, random_split
+import matplotlib.pyplot as plt
 
 
-path = "data_unified"
+path = "data/data_unified"
 
 
 data_dir = os.path.join(path)
@@ -15,23 +16,23 @@ data_dir = os.path.join(path)
 # Data augmentation and normalization for training
 transform = transforms.Compose([
     transforms.Grayscale(),  # Make sure images are single channel
-    transforms.Resize((128, 128)), # Resize to 128x128
-    transforms.RandomRotation(20), # Simple Rotation +- 20 degrees
+    transforms.Resize((256, 256)),  # Resize to 256x256
+    transforms.RandomRotation(20),  # Simple Rotation +- 20 degrees
     transforms.RandomAffine(0, translate=(0.15, 0.15), scale=(0.5, 1.2)),  # Random translation 15%
-    transforms.RandomPerspective(distortion_scale=0.2, p=0.5), # Random Perspective
-    transforms.ColorJitter(brightness=0.3, contrast=0.3), # Random brightness/contrast change
-    transforms.ToTensor(), # Convert image to tensor [0,1]
-    transforms.Normalize((0.5,), (0.5,)) # Normalize to range [-1,1]
+    transforms.RandomPerspective(distortion_scale=0.2, p=0.5),  # Random Perspective
+    transforms.ColorJitter(brightness=0.3, contrast=0.3),  # Random brightness/contrast change
+    transforms.ToTensor(),  # Convert image to tensor [0,1]
+    transforms.Normalize((0.5,), (0.5,))  # Normalize to range [-1,1]
 ])
 data_set = datasets.ImageFolder(root=data_dir, transform=transform)
 
 # Split dataset into training and testing sets (80-20 split)
 train_size = int(0.8 * len(data_set))
-test_size  = len(data_set) - train_size
+test_size = len(data_set) - train_size
 train_dataset, test_dataset = random_split(data_set, [train_size, test_size])
 
-train_loader = DataLoader(train_dataset, batch_size= 64, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size= 64, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
 
 print(f"📊 Dataset size: {len(data_set)} images")
 print(f"🧩 Train: {len(train_dataset)}, Test: {len(test_dataset)}")
@@ -44,16 +45,19 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 
-
-    
 # Model training
 def model_training(*, epochs=5):
     print("Torch version:", torch.__version__)
     print("CUDA available:", torch.cuda.is_available())
     print("GPU:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU only")
     best_acc = 0.0
+    loss_history = []
+
     for epoch in range(epochs):
         model.train()
+        running_loss = 0.0
+        batch_count = 0
+
         for images, labels in train_loader:
             images, labels = images.to(device), labels.to(device)
             optimizer.zero_grad()
@@ -61,8 +65,13 @@ def model_training(*, epochs=5):
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-        print(f"Epoch {epoch+1}, Loss: {loss.item():.4f}")
 
+            running_loss += loss.item()
+            batch_count += 1
+
+        epoch_loss = running_loss / max(batch_count, 1)
+        loss_history.append(epoch_loss)
+        print(f"Epoch {epoch+1}, Loss: {epoch_loss:.4f}")
 
         correct = 0
         total = 0
@@ -77,8 +86,20 @@ def model_training(*, epochs=5):
         accuracy = 100 * correct / total
         if accuracy >= best_acc:
             best_acc = accuracy
-            torch.save(model.state_dict(), "weights/kaggle_printed_digits.pth")
+            torch.save(model.state_dict(), "weights/kaggle_printed_digits_v1_size=256.pth")
             print(f"✅ Model improved! Saved with accuracy = {best_acc:.2f}%")
         print(f"Accuracy: {accuracy:.2f}%")
+
+    # Plot loss vs epoch
+    plt.figure()
+    plt.plot(range(1, len(loss_history) + 1), loss_history, marker="o")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title("Training Loss vs Epoch")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("training_loss.png")
+    plt.show()
+
     print("🏁 Training complete")
     print("🎉 Training finished. Best accuracy:", best_acc)

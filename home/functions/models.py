@@ -65,7 +65,7 @@ def get_image_transforms():
     return transforms.Compose([
         transforms.ToPILImage(),
         transforms.Grayscale(),
-        transforms.Resize((128, 128)),  # smaller input improves speed
+        transforms.Resize((256, 256)),  # smaller input improves speed
         transforms.ToTensor(),
         # transforms.Normalize((0.5,), (0.5,)),
     ])
